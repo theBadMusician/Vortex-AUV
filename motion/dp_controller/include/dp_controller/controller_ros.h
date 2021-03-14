@@ -31,12 +31,17 @@
 #include "dp_controller/setpoints.h"
 #include "dp_controller/quaternion_pd_controller.h"
 
-// Action server
-#include <actionlib/server/simple_action_server.h>
-#include <move_base_msgs/MoveBaseAction.h>
 
-// typedef so you dont have to write out definition every time
-typedef actionlib::SimpleActionServer<move_base_msgs::MoveBaseAction> MoveBaseActionServer;
+/**
+ * @warning OUTCOMMENTED WHEN MOVING FROM SERVER TO TOPIC
+ */
+
+// // Action server
+// #include <actionlib/server/simple_action_server.h>
+// #include <move_base_msgs/MoveBaseAction.h>
+
+// // typedef so you dont have to write out definition every time
+// typedef actionlib::SimpleActionServer<move_base_msgs::MoveBaseAction> MoveBaseActionServer;
 
 /**
  * @brief the Controller class
@@ -68,6 +73,14 @@ public:
    * @param msg   A nav_msg::Odometry message containing state data about the AUV.
   */
   void stateCallback(const nav_msgs::Odometry &msg);
+
+
+  /**
+   * @brief Callback for the reference the DP-controller must follow
+   * 
+   * @param xd  The desired point that the DP-controller will progress towards
+   */
+  void stateRefCallback(const geometry)
 
 
   /**
@@ -126,14 +139,14 @@ public:
 private:
 
   ros::NodeHandle m_nh;                /** Nodehandle          */
-
-  ros::Subscriber m_command_sub;       /** Command subscriber  */          
+         
   ros::Subscriber m_state_sub;         /** State subscriber    */
+  ros::Subscriber m_ref_sub            /** Reference subscriber*/
   ros::Subscriber m_mode_sub;          /** Mode subscriber     */
 
   ros::Publisher  m_wrench_pub;        /** Wrench publisher    */
   ros::Publisher  m_rpm_pub;           /** RPM publisher       */
-  ros::Publisher  m_mode_pub;          /** Mode publisher      */
+  // ros::Publisher  m_mode_pub;          /** Mode publisher      */
   ros::Publisher  m_debug_pub;         /** Debug publisher     */
 
   dynamic_reconfigure::Server<dp_controller::VortexControllerConfig> m_dr_srv;  /** dynamic_reconfigure server */

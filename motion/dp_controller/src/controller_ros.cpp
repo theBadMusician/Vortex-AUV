@@ -21,16 +21,17 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh), m_frequency(10)
   // Subscribers
   //m_state_sub = m_nh.subscribe("/auv/pose_gt", 1, &Controller::stateCallback, this);
   m_state_sub         = m_nh.subscribe("/odometry/filtered", 1, &Controller::stateCallback, this);
+  m_ref_sub           = m_nh.subscribe("/reference_model/output", 10, Controller::)
 
   // Service callback
   control_mode_service_ = m_nh.advertiseService("controlmode_service",&Controller::controlModeCallback, this);
 
   // Publishers
   m_wrench_pub  = m_nh.advertise<geometry_msgs::Wrench>("/auv/thruster_manager/input", 1);
-  m_mode_pub    = m_nh.advertise<std_msgs::String>("controller/mode", 10);
+  //m_mode_pub    = m_nh.advertise<std_msgs::String>("controller/mode", 10);
   m_debug_pub   = m_nh.advertise<vortex_msgs::Debug>("debug/controlstates", 10);
 
-  // Initial control mode and
+  // Initial control mode and startpoint
   m_control_mode = ControlModes::OPEN_LOOP;
   Eigen::Vector3d startPoint(5,-10,0);
   position = startPoint;
@@ -62,15 +63,15 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh), m_frequency(10)
 
   ROS_INFO("Initialized at %i Hz.", m_frequency);
 
-  /* Action server */
-  //ros::NodeHandle nodeHandle("move_base");
-  mActionServer = new MoveBaseActionServer(m_nh, "move_base", /*autostart*/false);
+  // /* Action server */
+  // //ros::NodeHandle nodeHandle("move_base");
+  // mActionServer = new MoveBaseActionServer(m_nh, "move_base", /*autostart*/false);
 
-  //register the goal and feeback callbacks
-  mActionServer->registerGoalCallback(boost::bind(&Controller::actionGoalCallBack, this));
-  mActionServer->registerPreemptCallback(boost::bind(&Controller::preemptCallBack, this));
-  mActionServer->start();
-  ROS_INFO("Started action server.");
+  // //register the goal and feeback callbacks
+  // mActionServer->registerGoalCallback(boost::bind(&Controller::actionGoalCallBack, this));
+  // mActionServer->registerPreemptCallback(boost::bind(&Controller::preemptCallBack, this));
+  // mActionServer->start();
+  // ROS_INFO("Started action server.");
 }
 
 /* SERVICE SERVER */
@@ -121,6 +122,10 @@ ControlMode Controller::getControlMode(int mode)
 }
 
 
+  /**
+   * @warning OUTCOMMENTED WHEN MOVING FROM SERVER TO TOPIC
+   */
+
 /* ACTION SERVER */
 
 // This action is event driven, the action code only runs when the callbacks occur therefore
@@ -131,37 +136,37 @@ ControlMode Controller::getControlMode(int mode)
 void Controller::preemptCallBack()
 {
 
- 	//notify the ActionServer that we've successfully preempted
-    ROS_DEBUG_NAMED("move_base","Move base preempting the current goal");	
+ 	// //notify the ActionServer that we've successfully preempted
+  //   ROS_DEBUG_NAMED("move_base","Move base preempting the current goal");	
 
-    // set the action state to preempted
-    mActionServer->setPreempted();
+  //   // set the action state to preempted
+  //   mActionServer->setPreempted();
 }
 
 void Controller::actionGoalCallBack()
 {
 
-  // set current target position to previous position
-  m_controller->x_d_prev = position;
-  m_controller->x_d_prev_prev = position;
-  m_controller->x_ref_prev = position;
-  m_controller->x_ref_prev_prev = position;
+  // // set current target position to previous position
+  // m_controller->x_d_prev = position;
+  // m_controller->x_d_prev_prev = position;
+  // m_controller->x_ref_prev = position;
+  // m_controller->x_ref_prev_prev = position;
 
-  // accept the new goal - do I have to cancel a pre-existing one first?
-  mGoal = mActionServer->acceptNewGoal()->target_pose;
+  // // accept the new goal - do I have to cancel a pre-existing one first?
+  // mGoal = mActionServer->acceptNewGoal()->target_pose;
 
-  // print the current goal
-  ROS_INFO("Controller::actionGoalCallBack(): driving to %2.2f/%2.2f/%2.2f", mGoal.pose.position.x, mGoal.pose.position.y, mGoal.pose.position.z);
+  // // print the current goal
+  // ROS_INFO("Controller::actionGoalCallBack(): driving to %2.2f/%2.2f/%2.2f", mGoal.pose.position.x, mGoal.pose.position.y, mGoal.pose.position.z);
 
-  // Transform from Msg to Eigen
-  tf::pointMsgToEigen(mGoal.pose.position, setpoint_position);
-  tf::quaternionMsgToEigen(mGoal.pose.orientation, setpoint_orientation);
+  // // Transform from Msg to Eigen
+  // tf::pointMsgToEigen(mGoal.pose.position, setpoint_position);
+  // tf::quaternionMsgToEigen(mGoal.pose.orientation, setpoint_orientation);
 
-  // setpoint declared as private variable
-  m_setpoints->set(setpoint_position, setpoint_orientation);
+  // // setpoint declared as private variable
+  // m_setpoints->set(setpoint_position, setpoint_orientation);
 
-  // Integral action reset
-  m_controller->integral = Eigen::Vector6d::Zero();
+  // // Integral action reset
+  // m_controller->integral = Eigen::Vector6d::Zero();
 
 }
 
@@ -188,21 +193,21 @@ void Controller::stateCallback(const nav_msgs::Odometry &msg)
 
   // ACTION SERVER
 
-  // save current state to private variable
-  // geometry_msgs/PoseStamped Pose
-  if (!mActionServer->isActive())
-      return;
+  // // save current state to private variable
+  // // geometry_msgs/PoseStamped Pose
+  // if (!mActionServer->isActive())
+  //     return;
 
-  // return a feedback message to the client
-  feedback_.base_position.header.stamp = ros::Time::now();
-  feedback_.base_position.pose = msg.pose.pose;
-  mActionServer->publishFeedback(feedback_);
+  // // return a feedback message to the client
+  // feedback_.base_position.header.stamp = ros::Time::now();
+  // feedback_.base_position.pose = msg.pose.pose;
+  // mActionServer->publishFeedback(feedback_);
 
 
-  // if within circle of acceptance, return result succeeded
-  if (m_controller->circleOfAcceptance(position,setpoint_position,R)){
-  	mActionServer->setSucceeded(move_base_msgs::MoveBaseResult(), "Goal reached.");
-  }
+  // // if within circle of acceptance, return result succeeded
+  // if (m_controller->circleOfAcceptance(position,setpoint_position,R)){
+  // 	mActionServer->setSucceeded(move_base_msgs::MoveBaseResult(), "Goal reached.");
+  // }
 
 }
 
@@ -417,7 +422,7 @@ void Controller::updateSetpoint(PoseIndex axis)
 void Controller::initPositionHoldController()
 {
   // Read controller gains from parameter server
-  double a, b, c, i;
+  double a, b, c, i;publishControlMode
   if (!m_nh.getParam("/controllers/dp/velocity_gain", a))
     ROS_ERROR("Failed to read parameter velocity_gain.");
   if (!m_nh.getParam("/controllers/dp/position_gain", b))
