@@ -80,7 +80,7 @@ public:
    * 
    * @param xd  The desired point that the DP-controller will progress towards
    */
-  void stateRefCallback(const geometry)
+  void refPosCallback(const geometry_msgs::Pose )
 
 
   /**
