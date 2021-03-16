@@ -77,10 +77,11 @@ public:
 
   /**
    * @brief Callback for the reference the DP-controller must follow
+   * Each time this topic is pushed to, the integral is reset
    * 
-   * @param xd  The desired point that the DP-controller will progress towards
+   * @param xd  The desired point that the DP-controller calculate towards
    */
-  void refPosCallback(const geometry_msgs::Pose )
+  void refPosCallback(const geometry_msgs::Pose &xd);
 
 
   /**
@@ -317,7 +318,6 @@ private:
                            const Eigen::Vector3d &position_setpoint,
                            const Eigen::Quaterniond &orientation_setpoint);
 
-
   /**
    * @brief Control mode for keeping both fixed pose and fixed heading
    *  
@@ -341,7 +341,7 @@ private:
 
 protected:
 
-  MoveBaseActionServer* mActionServer;  /** Action server object */
+  // MoveBaseActionServer* mActionServer;  /** Action server object */
 
   move_base_msgs::MoveBaseFeedback feedback_; /** Current feedback value*/
   

@@ -3,6 +3,19 @@
      All rights reserved. */
 
 
+/**
+ * TODO: 
+ * 
+ *  - Subscribe to the desired position (done - hopefully)
+ *  - Outcomment all the BS from the serves (done - hopefully)
+ *  - Added a way to use the integrator (done)
+ *  
+ *  - Find a way to handle the control-modes 
+ *  - Understand how the DP-controller calculates the next goal and implement it as that
+ */
+
+
+
 #include "dp_controller/controller_ros.h"
 
 #include "dp_controller/eigen_helper.h"
@@ -21,10 +34,10 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh), m_frequency(10)
   // Subscribers
   //m_state_sub = m_nh.subscribe("/auv/pose_gt", 1, &Controller::stateCallback, this);
   m_state_sub         = m_nh.subscribe("/odometry/filtered", 1, &Controller::stateCallback, this);
-  m_ref_sub           = m_nh.subscribe("/reference_model/output", 10, &Controller::refPosCallback, this);
+  m_ref_sub           = m_nh.subscribe("/reference_model/output", 1, &Controller::refPosCallback, this);
 
   // Service callback
-  control_mode_service_ = m_nh.advertiseService("controlmode_service",&Controller::controlModeCallback, this);
+  //control_mode_service_ = m_nh.advertiseService("controlmode_service",&Controller::controlModeCallback, this);
 
   // Publishers
   m_wrench_pub  = m_nh.advertise<geometry_msgs::Wrench>("/auv/thruster_manager/input", 1);
@@ -122,6 +135,22 @@ ControlMode Controller::getControlMode(int mode)
 }
 
 
+void Controller::refPosCallback(const geometry_msgs::Pose& xd)
+{
+  /* Resetting the integral, since we have a new point to drive towards */
+  m_controller->integral = Eigen::Vector6d::Zero(); 
+
+  /* Setting current target position to previous position to avoid aggressive switching */
+  m_controller->x_d_prev = position;
+  m_controller->x_d_prev_prev = position;
+  m_controller->x_ref_prev = position;
+  m_controller->x_ref_prev_prev = position;
+
+  /* Registering the target pose */
+  mGoal.pose = xd;
+  ROS_INFO("Controller::actionGoalCallBack(): driving to %2.2f/%2.2f/%2.2f", mGoal.pose.position.x, mGoal.pose.position.y, mGoal.pose.position.z);
+}
+
   /**
    * @warning OUTCOMMENTED WHEN MOVING FROM SERVER TO TOPIC
    */
@@ -133,42 +162,42 @@ ControlMode Controller::getControlMode(int mode)
 // The callback function takes no arguments and sets preempted on the action server.
 // I wonder whether this needs to be mutexed.
 
-void Controller::preemptCallBack()
-{
+//void Controller::preemptCallBack()
+//{
 
  	// //notify the ActionServer that we've successfully preempted
   //   ROS_DEBUG_NAMED("move_base","Move base preempting the current goal");	
 
   //   // set the action state to preempted
   //   mActionServer->setPreempted();
-}
+//}
 
-void Controller::actionGoalCallBack()
-{
+// void Controller::actionGoalCallBack()
+// {
 
-  // // set current target position to previous position
-  // m_controller->x_d_prev = position;
-  // m_controller->x_d_prev_prev = position;
-  // m_controller->x_ref_prev = position;
-  // m_controller->x_ref_prev_prev = position;
+//   // // set current target position to previous position
+//   // m_controller->x_d_prev = position;
+//   // m_controller->x_d_prev_prev = position;
+//   // m_controller->x_ref_prev = position;
+//   // m_controller->x_ref_prev_prev = position;
 
-  // // accept the new goal - do I have to cancel a pre-existing one first?
-  // mGoal = mActionServer->acceptNewGoal()->target_pose;
+//   // // accept the new goal - do I have to cancel a pre-existing one first?
+//   // mGoal = mActionServer->acceptNewGoal()->target_pose;
 
-  // // print the current goal
-  // ROS_INFO("Controller::actionGoalCallBack(): driving to %2.2f/%2.2f/%2.2f", mGoal.pose.position.x, mGoal.pose.position.y, mGoal.pose.position.z);
+//   // // print the current goal
+//   // ROS_INFO("Controller::actionGoalCallBack(): driving to %2.2f/%2.2f/%2.2f", mGoal.pose.position.x, mGoal.pose.position.y, mGoal.pose.position.z);
 
-  // // Transform from Msg to Eigen
-  // tf::pointMsgToEigen(mGoal.pose.position, setpoint_position);
-  // tf::quaternionMsgToEigen(mGoal.pose.orientation, setpoint_orientation);
+//   // // Transform from Msg to Eigen
+//   // tf::pointMsgToEigen(mGoal.pose.position, setpoint_position);
+//   // tf::quaternionMsgToEigen(mGoal.pose.orientation, setpoint_orientation);
 
-  // // setpoint declared as private variable
-  // m_setpoints->set(setpoint_position, setpoint_orientation);
+//   // // setpoint declared as private variable
+//   // m_setpoints->set(setpoint_position, setpoint_orientation);
 
-  // // Integral action reset
-  // m_controller->integral = Eigen::Vector6d::Zero();
+//   // // Integral action reset
+//   // m_controller->integral = Eigen::Vector6d::Zero();
 
-}
+// }
 
 
 //void Controller::stateCallback(const vortex_msgs::RovState &msg)
@@ -259,10 +288,17 @@ void Controller::spin()
     m_setpoints->get(&tau_openloop);
 
     if (m_debug_mode)
-    publishDebugMsg(position_state, orientation_state, velocity_state,
-                    position_setpoint, orientation_setpoint);
+      publishDebugMsg(position_state, orientation_state, velocity_state,
+                      position_setpoint, orientation_setpoint);
 
     tau_command.setZero();
+
+
+    /** 
+     * TODO: 
+     * Have to find a way to switch between the control-modes and/or handle
+     * these
+     */
 
     switch (m_control_mode)
     {
