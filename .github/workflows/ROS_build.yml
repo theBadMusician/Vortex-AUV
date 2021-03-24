@@ -53,5 +53,5 @@ jobs:
           source /opt/ros/melodic/setup.bash
           source ~/catkin_ws/devel/setup.bash
           cd ~/catkin_ws/src/Vortex-Simulator/launch_scripts_bash
-          chmod u+x+r ./sim_launch_fsm2.sh
-          ./sim_launch_fsm2.sh --gui 0 --camerafront 0 --sleep 24
+          chmod u+x+r ./sim_launch_fsm.sh
+          ./sim_launch_fsm1h --gui 0 --camerafront 0 --sleep 25
